@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container" style="padding: 3rem 0;">
+    <div style="margin-bottom: 3rem;">
+        <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem;">Comparative Dashboard</h1>
+        <p style="font-size: 1.1rem; color: var(--text-secondary);">How different models perform across all sycophancy tests</p>
+    </div>
+    
+    <div class="dashboard-grid">
+        <div class="chart-container" style="grid-column: 1 / -1;">
+            <h2 style="margin-bottom: 1.5rem;">Capitulation Rate by Model</h2>
+            <canvas id="capitulationChart"></canvas>
+        </div>
+        
+        <div class="chart-container" style="grid-column: 1 / -1;">
+            <h2 style="margin-bottom: 1.5rem;">Average Sycophancy Score by Model</h2>
+            <canvas id="scoresChart"></canvas>
+        </div>
+        
+        <div class="stats-grid" id="statsContainer" style="grid-column: 1 / -1;"></div>
+        
+        <div class="table-container" style="grid-column: 1 / -1;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Model</th>
+                        <th>Capitulation Rate</th>
+                        <th>Avg. Score</th>
+                        <th>Resistant Tests</th>
+                        <th>Total Tests</th>
+                    </tr>
+                </thead>
+                <tbody id="statsTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div style="text-align: center; margin-top: 3rem;">
+        <a href="/" class="btn btn-secondary">← Back Home</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+fetch('/api/stats')
+    .then(response => response.json())
+    .then(data => {
+        initializeDashboard(data);
+    })
+    .catch(error => console.error('Error loading stats:', error));
+
+function initializeDashboard(data) {
+    const { models, stats } = data;
+    
+    // Prepare data for charts
+    const capitulationRates = models.map(m => stats[m].capitulation_rate);
+    const avgScores = models.map(m => stats[m].avg_score);
+    
+    // Color scheme
+    const colors = ['#2563eb', '#10b981', '#f59e0b', '#ef4444'];
+    const bgColors = colors.map(c => c + '20');
+    
+    // Capitulation Rate Chart
+    const ctxCapitulation = document.getElementById('capitulationChart').getContext('2d');
+    new Chart(ctxCapitulation, {
+        type: 'bar',
+        data: {
+            labels: models,
+            datasets: [{
+                label: 'Capitulation Rate (%)',
+                data: capitulationRates,
+                backgroundColor: colors,
+                borderColor: colors,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: { callback: function(v) { return v + '%'; } }
+                }
+            }
+        }
+    });
+    
+    // Average Scores Chart
+    const ctxScores = document.getElementById('scoresChart').getContext('2d');
+    new Chart(ctxScores, {
+        type: 'bar',
+        data: {
+            labels: models,
+            datasets: [{
+                label: 'Average Sycophancy Score',
+                data: avgScores,
+                backgroundColor: colors,
+                borderColor: colors,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: { callback: function(v) { return v; } }
+                }
+            }
+        }
+    });
+    
+    // Populate stats cards
+    const statsContainer = document.getElementById('statsContainer');
+    models.forEach((model, idx) => {
+        const modelStats = stats[model];
+        const card = document.createElement('div');
+        card.className = 'stat-card';
+        card.innerHTML = `
+            <h3>${model}</h3>
+            <div class="stat-value">${modelStats.capitulation_rate}%</div>
+            <div class="stat-label">Capitulation Rate</div>
+            <div class="stat-secondary">Avg Score: ${modelStats.avg_score}</div>
+        `;
+        statsContainer.appendChild(card);
+    });
+    
+    // Populate table
+    const tableBody = document.getElementById('statsTableBody');
+    models.forEach(model => {
+        const modelStats = stats[model];
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><strong>${model}</strong></td>
+            <td>${modelStats.capitulation_rate}%</td>
+            <td>${modelStats.avg_score}</td>
+            <td>${modelStats.resistant_tests}</td>
+            <td>${modelStats.total_tests}</td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+</script>
+{% endblock %}

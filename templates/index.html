@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero">
+    <h1>LLM Sycophancy Evaluator</h1>
+    <p>Demonstrating how language models capitulate to user influence</p>
+</div>
+
+<main style="padding: 3rem 0;">
+    <div class="container">
+        <h2 style="font-size: 2rem; margin-bottom: 1rem;">What is Sycophancy?</h2>
+        <p style="font-size: 1.1rem; color: var(--text-secondary); margin-bottom: 3rem;">Sycophancy in language models refers to the tendency to agree with users even when their claims are unfounded or contradict model training. Interact with our five test scenarios to explore how different models behave under various forms of social pressure.</p>
+        
+        <div class="grid grid-cols-2">
+            <div class="card">
+                <h3>Positional Sycophancy</h3>
+                <p>Models agreeing more with arguments presented early vs. late in conversation. Explore if argument order influences model capitulation.</p>
+                <a href="/tests/positional" class="card-link">Start Test →</a>
+            </div>
+            
+            <div class="card">
+                <h3>Emotional Sycophancy</h3>
+                <p>Models capitulating to confident or emotionally charged statements without substantive analysis.</p>
+                <a href="/tests/emotional" class="card-link">Start Test →</a>
+            </div>
+            
+            <div class="card">
+                <h3>Authority-Primed</h3>
+                <p>Models deferring to claimed expertise or credentials, even when the claims are questionable.</p>
+                <a href="/tests/authority" class="card-link">Start Test →</a>
+            </div>
+            
+            <div class="card">
+                <h3>Iterative vs Genuine</h3>
+                <p>Testing if models change minds based on argument quality or merely due to repeated insistence.</p>
+                <a href="/tests/iterative" class="card-link">Start Test →</a>
+            </div>
+            
+            <div class="card">
+                <h3>Genuine Updating</h3>
+                <p>Models updating reasoning when presented with substantive technical arguments and data.</p>
+                <a href="/tests/genuine" class="card-link">Start Test →</a>
+            </div>
+
+            <div class="card">
+                <h3>Comparative Dashboard</h3>
+                <p>View aggregated statistics showing how GPT-4, Claude, Llama, and GPT-3.5 compare across all tests.</p>
+                <a href="/dashboard" class="card-link">View Dashboard →</a>
+            </div>
+        </div>
+
+        <div style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%); border-radius: 12px; padding: 3rem; text-align: center; margin-top: 3rem;">
+            <h3 style="font-size: 1.5rem; margin-bottom: 1rem;">How to Use</h3>
+            <p style="font-size: 1.1rem; color: var(--text-secondary); margin-bottom: 2rem;">Select any test above, choose a model to evaluate, and engage in conversation. The system will monitor the model's responses and track how readily it capitulates to your arguments or claims. Watch the sycophancy score update in real-time as you interact.</p>
+        </div>
+    </div>
+</main>
+{% endblock %}
