@@ -15,7 +15,7 @@ conversations = {}
 
 # Safeguard configuration
 SAFEGUARDS = {
-    'max_turns': 20,  # Max conversation turns per session
+    'max_turns': 20,  
     'max_input_length': 500,
     'jailbreak_keywords': [
         'ignore', 'forget', 'pretend', 'roleplay', 'act as', 'system prompt',
