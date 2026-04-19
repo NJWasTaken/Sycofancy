@@ -18,6 +18,11 @@
             <canvas id="scoresChart"></canvas>
         </div>
         
+        <div class="chart-container" style="grid-column: 1 / -1;">
+            <h2 style="margin-bottom: 1.5rem;">Flip Rate by Pressure Type</h2>
+            <canvas id="pressureChart"></canvas>
+        </div>
+        
         <div class="stats-grid" id="statsContainer" style="grid-column: 1 / -1;"></div>
         
         <div class="table-container" style="grid-column: 1 / -1;">
@@ -53,12 +58,16 @@ fetch('/api/stats')
     .catch(error => console.error('Error loading stats:', error));
 
 function initializeDashboard(data) {
-    const { models, stats } = data;
+    const { models, stats, pressure_breakdown } = data;
     
     // Prepare data for charts
     const capitulationRates = models.map(m => stats[m].capitulation_rate);
     const avgScores = models.map(m => stats[m].avg_score);
-    
+
+    // Pressure breakdown data
+    const pressureLabels = Object.keys(pressure_breakdown);
+    const pressureFlipRates = pressureLabels.map(pt => pressure_breakdown[pt].flip_rate);
+
     // Color scheme
     const colors = ['#2563eb', '#10b981', '#f59e0b', '#ef4444'];
     const bgColors = colors.map(c => c + '20');
@@ -70,7 +79,7 @@ function initializeDashboard(data) {
         data: {
             labels: models,
             datasets: [{
-                label: 'Capitulation Rate (%)',
+                label: 'Flip Rate',
                 data: capitulationRates,
                 backgroundColor: colors,
                 borderColor: colors,
@@ -79,20 +88,39 @@ function initializeDashboard(data) {
         },
         options: {
             responsive: true,
+            scales: { y: { beginAtZero: true, max: 1, ticks: { callback: v => (v * 100).toFixed(0) + '%' } } },
             plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100,
-                    ticks: { callback: function(v) { return v + '%'; } }
-                }
+                legend: { display: false },
+                tooltip: { callbacks: { label: ctx => (ctx.raw * 100).toFixed(1) + '%' } }
             }
         }
     });
     
-    // Average Scores Chart
+    // Flip Rate by Pressure Type Chart
+    const ctxPressure = document.getElementById('pressureChart').getContext('2d');
+    new Chart(ctxPressure, {
+        type: 'bar',
+        data: {
+            labels: pressureLabels,
+            datasets: [{
+                label: 'Flip Rate',
+                data: pressureFlipRates,
+                backgroundColor: colors,
+                borderColor: colors,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: { y: { beginAtZero: true, max: 1, ticks: { callback: v => (v * 100).toFixed(0) + '%' } } },
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: ctx => (ctx.raw * 100).toFixed(1) + '%' } }
+            }
+        }
+    });
+    
+    // Average Sycophancy Score Chart
     const ctxScores = document.getElementById('scoresChart').getContext('2d');
     new Chart(ctxScores, {
         type: 'bar',
@@ -101,7 +129,7 @@ function initializeDashboard(data) {
             datasets: [{
                 label: 'Average Sycophancy Score',
                 data: avgScores,
-                backgroundColor: colors,
+                backgroundColor: bgColors,
                 borderColor: colors,
                 borderWidth: 2
             }]
@@ -109,14 +137,8 @@ function initializeDashboard(data) {
         options: {
             responsive: true,
             plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100,
-                    ticks: { callback: function(v) { return v; } }
-                }
+                legend: { display: false },
+                tooltip: { callbacks: { label: ctx => ctx.raw.toFixed(2) } }
             }
         }
     });
@@ -129,27 +151,29 @@ function initializeDashboard(data) {
         card.className = 'stat-card';
         card.innerHTML = `
             <h3>${model}</h3>
-            <div class="stat-value">${modelStats.capitulation_rate}%</div>
-            <div class="stat-label">Capitulation Rate</div>
-            <div class="stat-secondary">Avg Score: ${modelStats.avg_score}</div>
+            <div class="stat-value">${(modelStats.capitulation_rate * 100).toFixed(1)}%</div>
+            <div class="stat-label">Flip Rate</div>
+            <div class="stat-secondary">Avg Score: ${modelStats.avg_score.toFixed(1)}</div>
         `;
         statsContainer.appendChild(card);
     });
     
     // Populate table
     const tableBody = document.getElementById('statsTableBody');
-    models.forEach(model => {
-        const modelStats = stats[model];
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td><strong>${model}</strong></td>
-            <td>${modelStats.capitulation_rate}%</td>
-            <td>${modelStats.avg_score}</td>
-            <td>${modelStats.resistant_tests}</td>
-            <td>${modelStats.total_tests}</td>
-        `;
-        tableBody.appendChild(row);
-    });
+    tableBody.innerHTML = models.map(model => `
+        <tr>
+            <td>${model}</td>
+            <td>${(stats[model].capitulation_rate * 100).toFixed(2)}%</td>
+            <td>${stats[model].avg_score.toFixed(2)}</td>
+            <td>${stats[model].resistant_tests}</td>
+            <td>${stats[model].total_tests}</td>
+        </tr>
+    `).join('');
+
+    // Handle empty results case
+    if (!models.length) {
+        document.querySelector('.dashboard-grid').innerHTML = '<p>No eval results yet. Run <code>python -m eval.run_batch_eval</code> to generate results.</p>';
+    }
 }
 </script>
 {% endblock %}

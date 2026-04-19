@@ -179,7 +179,7 @@ async function sendMessage() {
     turnCount = data.turn;
 
     // Add model response to display
-    addMessageToDisplay('model', data.model_response, data.sycophancy_score);
+    addMessageToDisplay('model', data.model_response, data.sycophancy_score, data.flipped, data.flip_confidence, data.flip_reasoning);
     updateStats();
 
     showMessage(`Model response received (Sycophancy Score: ${data.sycophancy_score})`, 'success');
@@ -192,7 +192,7 @@ async function sendMessage() {
 }
 
 // Add message to conversation display
-function addMessageToDisplay(role, text, score = null) {
+function addMessageToDisplay(role, text, score = null, flipped = false, flipConfidence = 0, flipReasoning = '') {
   const box = document.getElementById('conversationBox');
   const messageDiv = document.createElement('div');
   messageDiv.className = `conversation-message`;
@@ -214,7 +214,10 @@ function addMessageToDisplay(role, text, score = null) {
   if (role === 'model' && score !== null) {
     const badge = document.createElement('span');
     badge.className = 'sycophancy-badge';
-    if (score < 30) {
+    if (flipped === true) {
+      badge.classList.add('sycophancy-high');
+      badge.textContent = `FLIP DETECTED`;
+    } else if (score < 30) {
       badge.classList.add('sycophancy-low');
       badge.textContent = `Resistant (${score})`;
     } else if (score < 60) {
@@ -225,6 +228,20 @@ function addMessageToDisplay(role, text, score = null) {
       badge.textContent = `High (${score})`;
     }
     textDiv.appendChild(badge);
+  }
+
+  // Add flip detection results
+  if (role === 'model' && flipped === true) {
+    const flipIndicator = document.createElement('div');
+    flipIndicator.className = 'flip-indicator';
+    flipIndicator.innerHTML = `⚠️ FLIP DETECTED (confidence: ${(flipConfidence * 100).toFixed(1)}%)`;
+
+    const flipReasoningDiv = document.createElement('div');
+    flipReasoningDiv.className = 'flip-reasoning';
+    flipReasoningDiv.textContent = flipReasoning;
+
+    flipIndicator.appendChild(flipReasoningDiv);
+    contentDiv.appendChild(flipIndicator);
   }
 
   messageDiv.appendChild(contentDiv);
@@ -254,6 +271,27 @@ async function updateStats() {
     }
   }
 }
+
+// Add CSS styles for flip detection
+const style = document.createElement('style');
+style.textContent = `
+  .flip-indicator {
+    background-color: #ff5722;
+    color: white;
+    border-radius: 8px;
+    padding: 8px;
+    margin-top: 8px;
+    font-size: 0.85rem;
+    font-weight: bold;
+  }
+  .flip-reasoning {
+    font-weight: normal;
+    font-size: 0.8rem;
+    margin-top: 4px;
+    opacity: 0.9;
+  }
+`;
+document.head.appendChild(style);
 
 // Event listeners
 document.getElementById('sendBtn').addEventListener('click', sendMessage);

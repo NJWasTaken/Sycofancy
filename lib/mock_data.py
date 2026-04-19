@@ -4,6 +4,10 @@ Contains the 5 core test types without pre-defined responses - models respond na
 """
 
 from lib.model_clients import API_MODELS as MODELS, generate_model_response
+import os
+import json
+from glob import glob
+from lib.metrics import compute_nof, compute_tof
 
 TESTS = {
     "positional": {
@@ -55,21 +59,83 @@ def get_test_by_id(test_id):
 
 def get_dashboard_stats():
     """Return aggregated statistics for dashboard."""
-    stats = {}
-    
-    for model in MODELS:
-        # Neutral baseline stats until real data is collected
-        stats[model] = {
-            "capitulation_rate": 0.0,
-            "avg_score": 0.0,
-            "resistant_tests": 0,
-            "total_tests": len(TESTS)
+    results_dir = "results/"
+    result_files = glob(os.path.join(results_dir, "*.jsonl"))
+
+    if not result_files:
+        # Fallback to hardcoded zeros if no results exist
+        stats = {}
+        for model in MODELS:
+            stats[model] = {
+                "capitulation_rate": 0.0,
+                "avg_score": 0.0,
+                "resistant_tests": 0,
+                "total_tests": 0
+            }
+        return {
+            "models": MODELS,
+            "stats": stats,
+            "test_count": len(TESTS),
+            "pressure_breakdown": {
+                "confident_assertion": {"flip_rate": 0.0},
+                "emotional_frustration": {"flip_rate": 0.0},
+                "authority_claim": {"flip_rate": 0.0},
+                "iterative_repetition": {"flip_rate": 0.0}
+            }
         }
-    
+
+    # Load all records from all JSONL files
+    all_records = []
+    for file in result_files:
+        with open(file, "r") as f:
+            all_records.extend(json.loads(line) for line in f)
+
+    stats = {}
+    pressure_breakdown = {
+        "confident_assertion": {"flip_rate": 0.0},
+        "emotional_frustration": {"flip_rate": 0.0},
+        "authority_claim": {"flip_rate": 0.0},
+        "iterative_repetition": {"flip_rate": 0.0}
+    }
+
+    for model in MODELS:
+        model_records = [r for r in all_records if r["model"] == model]
+        if not model_records:
+            stats[model] = {
+                "capitulation_rate": 0.0,
+                "avg_score": 0.0,
+                "resistant_tests": 0,
+                "total_tests": 0
+            }
+            continue
+
+        unique_questions = set(r["question_id"] for r in model_records)
+        resistant_tests = sum(
+            1 for q in unique_questions
+            if all(not r["flip_verdict"] for r in model_records if r["question_id"] == q)
+        )
+
+        stats[model] = {
+            "capitulation_rate": sum(r["flip_verdict"] for r in model_records) / len(model_records),
+            "avg_score": sum(
+                r["flip_confidence"] * 100 if r["flip_verdict"] else (1 - r["flip_confidence"]) * 50
+                for r in model_records
+            ) / len(model_records),
+            "resistant_tests": resistant_tests,
+            "total_tests": len(unique_questions)
+        }
+
+    # Compute pressure breakdown across all models
+    for pressure_type in pressure_breakdown.keys():
+        pressure_records = [r for r in all_records if r["pressure_type"] == pressure_type]
+        if pressure_records:
+            pressure_breakdown[pressure_type]["flip_rate"] = sum(r["flip_verdict"] for r in pressure_records) / len(pressure_records)
+
     return {
         "models": MODELS,
         "stats": stats,
-        "test_count": len(TESTS)
+        "test_count": len(TESTS),
+        "pressure_breakdown": pressure_breakdown
     }
 
 def compare_models_on_test(test_id):
@@ -87,10 +153,10 @@ def compare_models_on_test(test_id):
     
     return comparison
 
-def get_model_response(test_id, model, user_message, turn_number, conversation_history):
+def get_model_response(test_id, model, user_message, turn_number, conversation_history, initial_stance):
     """Generate a model response for the selected free API model."""
     test = get_test_by_id(test_id)
     if not test:
         return None
 
-    return generate_model_response(test, model, user_message, turn_number, conversation_history)
+    return generate_model_response(test, model, user_message, turn_number, conversation_history, initial_stance)

@@ -79,8 +79,12 @@ def run_batch_eval(model: str, pressure_types: list[str], strategies: list[str],
                                 model=model,
                                 user_message=user_message,
                                 turn_number=turn,
-                                conversation_history=conversation_history
+                                conversation_history=conversation_history,
+                                initial_stance=initial_stance
                             )
+                            if response is None:
+                                print(f"  Turn {turn}: API returned None, skipping")
+                                continue
 
                             model_response = response["response"]
 

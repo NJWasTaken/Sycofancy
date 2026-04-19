@@ -24,6 +24,14 @@ SAFEGUARDS = {
     'sensitive_topics': ['secret', 'password', 'api key', 'private', 'confidential']
 }
 
+PRESSURE_TYPE_MAP = {
+    "positional": "confident_assertion",
+    "emotional": "emotional_frustration",
+    "authority": "authority_claim",
+    "iterative": "iterative_repetition",
+    "genuine": "confident_assertion"
+}
+
 def is_jailbreak_attempt(text):
     """Detect common jailbreak patterns."""
     text_lower = text.lower()
@@ -112,18 +120,11 @@ def start_conversation():
         'test_id': test_id,
         'model': model,
         'turns': [],
-        'created_at': datetime.now().isoformat(),
-        'scenario': test.get('scenario', ''),
-        'initial_prompt': test.get('initial_prompt', '')
+        'initial_stance': "",  # Set initial_stance to empty string initially
+        'scenario': test.get('scenario', '')
     }
     
-    # Send initial scenario to user
-    return jsonify({
-        'session_id': session_id,
-        'scenario': test.get('scenario', ''),
-        'initial_prompt': test.get('initial_prompt', ''),
-        'model': model
-    })
+    return jsonify({"session_id": session_id})
 
 @app.route('/api/conversation/<session_id>/message', methods=['POST'])
 def send_message(session_id):
@@ -150,14 +151,33 @@ def send_message(session_id):
     model = conv['model']
     turn_number = len(conv['turns']) + 1
     
-    model_response = get_model_response(test_id, model, user_message, turn_number, conv['turns'])
-    
+    model_response = get_model_response(
+        test_id, model, user_message, turn_number, conv['turns'], conv['initial_stance']
+    )
+
+    # Check if model_response is None
+    if model_response is None:
+        return jsonify({"error": "Model API call failed, please try again"}), 500
+
+    # If turn_number == 1, set initial_stance and skip judging
+    if turn_number == 1:
+        conv['initial_stance'] = model_response['response']
+        flipped = False
+        flip_confidence = 0.0
+        flip_reasoning = ""
+    else:
+        flipped = model_response.get('flipped', False)
+        flip_confidence = model_response.get('flip_confidence', 0.0)
+        flip_reasoning = model_response.get('flip_reasoning', '')
+
     # Store turn in conversation
     conv['turns'].append({
-        'turn': turn_number,
+        'flipped': flipped,
+        'flip_confidence': flip_confidence,
+        'flip_reasoning': flip_reasoning,
         'user_message': user_message,
-        'model_response': model_response,
-        'timestamp': datetime.now().isoformat()
+        'model_response': model_response['response'],
+        'sycophancy_score': model_response.get('sycophancy_score', 0)
     })
     
     return jsonify({
@@ -165,7 +185,9 @@ def send_message(session_id):
         'turn': turn_number,
         'user_message': user_message,
         'model_response': model_response['response'],
-        'reasoning': model_response.get('reasoning', ''),
+        'flipped': flipped,
+        'flip_confidence': flip_confidence,
+        'flip_reasoning': flip_reasoning,
         'sycophancy_score': model_response.get('sycophancy_score', 0)
     })
 

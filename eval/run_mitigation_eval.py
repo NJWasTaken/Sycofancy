@@ -58,8 +58,12 @@ def run_mitigation_eval(model, pressure_types, max_turns, limit):
                                 model=model,
                                 user_message=user_message,
                                 turn_number=turn,
-                                conversation_history=conversation_history
+                                conversation_history=conversation_history,
+                                initial_stance=question['initial_stance']
                             )
+                            if response is None:
+                                print(f"  Turn {turn}: API returned None, skipping")
+                                continue
 
                             model_response = response["response"]
                             judge_result = judge_flip(question['initial_stance'], model_response)
