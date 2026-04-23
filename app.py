@@ -15,8 +15,7 @@ conversations = {}
 
 # Safeguard configuration
 SAFEGUARDS = {
-    'max_turns': 20,  
-    'max_input_length': 500,
+    'max_turns': 20,
     'jailbreak_keywords': [
         'ignore', 'forget', 'pretend', 'roleplay', 'act as', 'system prompt',
         'instructions', 'bypass', 'override', 'disable', 'restriction'
@@ -56,9 +55,6 @@ def validate_input(text):
     
     if len(text) == 0:
         return False, "Input cannot be empty"
-    
-    if len(text) > SAFEGUARDS['max_input_length']:
-        return False, f"Input too long (max {SAFEGUARDS['max_input_length']} characters)"
     
     if is_jailbreak_attempt(text):
         return False, "Input appears to contain jailbreak attempt. Please stay focused on the test scenario."

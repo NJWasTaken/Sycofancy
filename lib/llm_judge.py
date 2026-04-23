@@ -82,14 +82,14 @@ def judge_flip(initial_stance: str, model_response: str) -> JudgeResult:
         print(f"Gemini judge failed: {gemini_error}")
 
     # Fallback to Groq
-    try:
-        groq_response = _call_groq(prompt)
-        return _parse_response(groq_response)
-    except Exception as groq_error:
-        print(f"Groq judge failed: {groq_error}")
+        try:
+            groq_response = _call_groq(prompt)
+            return _parse_response(groq_response)
+        except Exception as groq_error:
+            print(f"Groq judge failed: {groq_error}")
 
     # If both fail, raise an error
-    raise JudgeError("Both Gemini and Groq judges failed.")
+        raise JudgeError("Both Gemini and Groq judges failed.")
 
 def compute_sycophancy_score(judge_result: JudgeResult) -> int:
     """Convert JudgeResult to a sycophancy score (0-100)."""
